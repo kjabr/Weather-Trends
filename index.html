@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8" />
+    <title>Weather Trends</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin=""/>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin="">
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  </head>
+  <style>
+    body {
+      background-color: #F7F6EF;
+      width: 100%;
+      margin: 0;
+    }
+    .container {
+      padding: 0 0 0 25px;
+      max-width: 90%;
+    }
+
+    #mapid {
+      width: 90%;
+      height: 60vh;
+    }
+
+    #map_section {
+      display: none;
+    }
+
+    p {
+      font-size: 0.8rem;
+    }
+
+    #station {
+      font-size: 0.5em;
+    }
+
+    .station_span {
+      color: blue;
+      cursor: pointer;
+    }
+
+    textarea {
+        background-color: #E3EEFC;
+        margin: 3px;
+        border-radius: 4px;
+        border: 0.2px solid #000000;
+        padding: 2px;
+        width: 90%;
+        font-size: 0.5rem;
+    }
+
+    #span2 {
+      color: #ff8c00;
+      font-size: 0.2rem;
+
+    }
+
+        /* Style the tab */
+    .tab {
+      overflow: hidden;
+      border: 1px solid #ccc;
+      background-color: #f1f1f1;
+    }
+
+    /* Style the buttons inside the tab */
+    .tab button {
+      background-color: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 14px 28px;
+      transition: 0.3s;
+      font-size: 17px;
+    }
+
+    /* Change background color of buttons on hover */
+    .tab button:hover {
+      background-color: #ddd;
+    }
+
+    /* Create an active/current tablink class */
+    .tab button.active {
+      background-color: #ccc;
+    }
+
+    /* Style the tab content */
+    .tabcontent {
+      display: none;
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-top: none;
+      animation: fadeEffect 1s;
+    }
+    @keyframes fadeEffect {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+
+    .plot_line {
+      display: flex;
+      flex-flow: row nowrap;
+      justify-content: flex-start;
+      align-items: center;
+      margin-left: 24px;
+
+    }
+
+    .data_parent {
+      display: flex;
+      flex-flow: column nowrap;
+    }
+
+
+    .data_grand_parent, .plots{
+      display: flex;
+      flex-flow: column nowrap;
+      justify-content: center;
+    }
+
+    .add_graph_svg{
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+
+    }
+
+    .add_graph_svg svg,  .add_plot_svg svg, .canvas_control1 svg, .canvas_control2 svg{
+      cursor: pointer;
+      margin-right: 10px;
+
+    }
+
+    .add_graph_svg {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 5px;
+      background-color: #F7F6EF;
+      margin-bottom: 12px;
+
+    }
+
+    .add_graph_svg svg {
+      fill: #BF5700;
+      transform: scale(1.2);
+    }
+
+    .graph_canvas {
+      max-width: 80%;
+      max-height: 250px;
+      margin-left: 32px;
+
+    }
+
+    .canvas_control{
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+    }
+
+    .canvas_control svg {
+      margin: 10px;
+    }
+
+    .canvas_section{
+      display: none;
+      flex-direction: row;
+    }
+
+    ._line {
+      width: 50%;
+      height: 10px;
+      border-bottom: 5px solid lightgray;
+      margin-bottom: 10px;
+      margin-top: 10px;
+    }
+
+    .section_line{
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+    }
+
+
+  </style>
+  <body>
+    <div class="container" id="container">
+
+    <h1>Weather Trends</h1>
+    <label for="countries">Select a Country: </label>
+    <select name="countries" id="location_code"></select>
+    <button type="button" onclick="fetch_location_data()" name="load_location_data">Fetch Stations</button>
+    <br><br>
+    <div class="tab">
+      <button id="map_button" class="tablinks" onclick="openTab(event, 'map_section')">Map</button>
+      <button class="tablinks" onclick="openTab(event, 'data_section')">Data</button>
+    </div>
+    <p id="msg"></p>
+    <div id="map_section" class="tabcontent">
+      <br>
+      <button type="button" id="reset_cache" onclick="reset_cache()" name="reset_cache">Reset Cache</button>
+      <br>
+      <p id="msg"></p>
+      <div id="mapid"></div>
+    </div>
+
+    <div id="data_section" class="tabcontent">
+      <p>Add graphs. Each can have multiple plots.</p>
+
+    </div>
+
+    <br>
+
+    </div>
+  </body>
+  <script>
+
+    var fips_list = {};
+    var fips_stations = {};
+    var stations_list = {};
+    var tkn;
+    var id;
+    var position;
+    var total_fips;
+    var mymap;
+    var limit = 500;
+    var fips_start_date = "2016-01-01";
+    var location;
+    var blueIcon;
+    var greenIcon;
+    var popup_info = [];
+    var graph_counter = 1;
+    var location_data = {};
+    var myChart = [];
+    var last_known_fips = "";
+
+    var init_fips_list = {total:0};
+    var init_stations_list = {total:0};
+
+    /*
+    Cache datastructure:
+      4 objects: fips_list, stations_list, fips_stations, location_data.
+
+      fips_list: list of fips (locations)
+      stations_list: list of all stations for fips locations
+      fips_stations: Cached weather stations and what measurements they offer
+      location_data: Cached weather stations and their data
+    */
+
+    var plus_circle = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+      </svg>
+    `;
+
+    var x_circle = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+      </svg>
+      `;
+
+    var arrow_counterclockwise = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-counterclockwise" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+      </svg>
+    `;
+
+    var add_section = `
+      <div class="add_graph_svg">
+        <div id="add_graph_MMM-BBB" onclick="add_graph(this)"> ${plus_circle} </div>
+        <div>Add a new graph</div>
+      </div>
+    `;
+
+    var data_parent = `
+      <div class="plots" id="plot_MMM-BBB">
+        <div class="plot_line" id="plot_line_MMM-BBB">
+          <div class="add_plot_svg" id="add_plot_MMM-BBB" onclick="add_plot(this)">
+            ${plus_circle}
+          </div>
+          <div class="add_plot">
+            <label for="stations_MMM-BBB">Select a station:</label>
+            <select name="stations_MMM-BBB" id="stations_MMM-BBB" onfocus="populate_stations(this)" onchange="populate_data(this)">
+            </select>
+            <label for="elements_MMM-BBB">Element:</label>
+            <select name="elements_MMM-BBB" id="elements_MMM-BBB">
+            </select>
+
+            <label for="periods_MMM-BBB">Period:</label>
+            <select name="periods_MMM-BBB" id="periods_MMM-BBB">
+            </select>
+            <label for="head_MMM-BBB">Color:</label>
+            <input type="color" class="plot_color" id="plot_color_MMM-BBB" name="head_MMM-BBB" value="#e66465">
+            <button type="button" id="graph_data_MMM-BBB" onclick="graph_data(this)" name="graph_data_MMM-BBB">Graph</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    var father = `
+      <div class="data_parent" id="data_parent_MMM">
+        ${data_parent}
+      </div>
+      <div class="canvas_section" id="canvas_section_MMM">
+        <canvas class="graph_canvas" id="canvas_MMM"></canvas>
+        <div class="canvas_control" id="canvas_control_MMM">
+          <div class="canvas_control1" id="canvas_undo_MMM" onclick="undo_canvas(this)">
+            ${arrow_counterclockwise}
+          </div>
+          <div class="canvas_control2" id="canvas_delete_MMM" onclick="delete_canvas(this)">
+            ${x_circle}
+          </div>
+        </div>
+      </div>
+      <div class="section_line">
+        <div class="_line"></div>
+      </div>
+    `;
+
+    var grand_parent = `
+
+      <div class="data_grand_parent" id="data_grand_parent_MMM">
+        ${father}
+      </div>
+
+    `;
+
+    var country_codes = [
+      ["AA", "Aruba"], ["AC", "Antigua and Barbuda"], ["AE", "United Arab Emirates"], ["AF", "Afghanistan"], ["AG", "Algeria"], ["AJ", "Azerbaijan"], ["AL", "Albania"], ["AM", "Armenia"], ["AN", "Andorra"], ["AO", "Angola"], ["AQ", "American Samoa"], ["AR", "Argentina"], ["AS", "Australia"], ["AT", "Ashmore and Cartier Islands"], ["AU", "Austria"], ["AV", "Anguilla"], ["AX", "Akrotiri"], ["AY", "Antarctica"], ["BA", "Bahrain"], ["BB", "Barbados"], ["BC", "Botswana"], ["BD", "Bermuda"], ["BE", "Belgium"], ["BF", "Bahamas, The"], ["BG", "Bangladesh"], ["BH", "Belize"], ["BK", "Bosnia and Herzegovina"], ["BL", "Bolivia"], ["BM", "Burma"], ["BN", "Benin"], ["BO", "Belarus"], ["BP", "Solomon Islands"], ["BQ", "Navassa Island"], ["BR", "Brazil"], ["BS", "Bassas da India"], ["BT", "Bhutan"], ["BU", "Bulgaria"], ["BV", "Bouvet Island"], ["BX", "Brunei"], ["BY", "Burundi"], ["CA", "Canada"], ["CB", "Cambodia"], ["CD", "Chad"], ["CE", "Sri Lanka"], ["CF", "Congo -Brazzaville"], ["CG", "Congo -Kinshasa"], ["CH", "China"], ["CI", "Chile"], ["CJ", "Cayman Islands"], ["CK", "Cocos -Keeling- Islands"], ["CM", "Cameroon"], ["CN", "Comoros"], ["CO", "Colombia"], ["CQ", "Northern Mariana Islands"], ["CR", "Coral Sea Islands"], ["CS", "Costa Rica"], ["CT", "Central African Republic"], ["CU", "Cuba"], ["CV", "Cape Verde"], ["CW", "Cook Islands"], ["CY", "Cyprus"], ["DA", "Denmark"], ["DJ", "Djibouti"], ["DO", "Dominica"], ["DQ", "Jarvis Island"], ["DR", "Dominican Republic"], ["DX", "Dhekelia"], ["EC", "Ecuador"], ["EG", "Egypt"], ["EI", "Ireland"], ["EK", "Equatorial Guinea"], ["EN", "Estonia"], ["ER", "Eritrea"], ["ES", "El Salvador"], ["ET", "Ethiopia"], ["EZ", "Czech Republic"], ["FG", "French Guiana"], ["FI", "Finland"], ["FJ", "Fiji"], ["FK", "Falkland Islands -Islas Malvinas"], ["FM", "Micronesia, Federated States of"], ["FO", "Faroe Islands"], ["FP", "French Polynesia"], ["FQ", "Baker Island"], ["FR", "France"], ["GA", "Gambia, The"], ["GB", "Gabon"], ["GG", "Georgia"], ["GH", "Ghana"], ["GI", "Gibraltar"], ["GJ", "Grenada"], ["GK", "Guernsey"], ["GL", "Greenland"], ["GM", "Germany"], ["GP", "Guadeloupe"], ["GQ", "Guam"], ["GR", "Greece"], ["GT", "Guatemala"], ["GV", "Guinea"], ["GY", "Guyana"], ["GZ", "Gaza Strip"], ["HA", "Haiti"], ["HK", "Hong Kong"], ["HO", "Honduras"], ["HQ", "Howland Island"], ["HR", "Croatia"], ["HU", "Hungary"], ["IC", "Iceland"], ["ID", "Indonesia"], ["IM", "Isle of Man"], ["IN", "India"], ["IR", "Iran"], ["IS", "Israel"], ["IT", "Italy"], ["IV", "Côte dIvoire"], ["IZ", "Iraq"], ["JA", "Japan"], ["JE", "Jersey"], ["JM", "Jamaica"], ["JN", "Jan Mayen"], ["JO", "Jordan"], ["JQ", "Johnston Atoll"], ["JU", "Juan de Nova Island"], ["KE", "Kenya"], ["KG", "Kyrgyzstan"], ["KN", "Korea North"], ["KQ", "Kingman Reef"], ["KR", "Kiribati"], ["KS", "Korea South"], ["KT", "Christmas Island"], ["KU", "Kuwait"], ["KV", "Kosovo"], ["KZ", "Kazakhstan"], ["LA", "Laos"], ["LE", "Lebanon"], ["LG", "Latvia"], ["LH", "Lithuania"], ["LI", "Liberia"], ["LO", "Slovakia"], ["LQ", "Palmyra Atoll"], ["LS", "Liechtenstein"], ["LT", "Lesotho"], ["LU", "Luxembourg"], ["LY", "Libya"], ["MA", "Madagascar"], ["MB", "Martinique"], ["MC", "Macau"], ["MD", "Moldova"], ["MF", "Mayotte"], ["MG", "Mongolia"], ["MH", "Montserrat"], ["MI", "Malawi"], ["MJ", "Montenegro"], ["MK", "North Macedonia"], ["ML", "Mali"], ["MN", "Monaco"], ["MO", "Morocco"], ["MP", "Mauritius"], ["MQ", "Midway Islands"], ["MR", "Mauritania"], ["MT", "Malta"], ["MU", "Oman"], ["MV", "Maldives"], ["MX", "Mexico"], ["MY", "Malaysia"], ["MZ", "Mozambique"], ["NC", "New Caledonia"], ["NE", "Niue"], ["NF", "Norfolk Island"], ["NG", "Niger"], ["NH", "Vanuatu"], ["NI", "Nigeria"], ["NL", "Netherlands"], ["NN", "Sint Maarten"], ["NO", "Norway"], ["NP", "Nepal"], ["NR", "Nauru"], ["NS", "Suriname"], ["NT", "Netherlands Antilles"], ["NU", "Nicaragua"], ["NZ", "New Zealand"], ["OD", "South Sudan"], ["PA", "Paraguay"], ["PC", "Pitcairn Islands"], ["PE", "Peru"], ["PK", "Pakistan"], ["PL", "Poland"], ["PM", "Panama"], ["PO", "Portugal"], ["PP", "Papua New Guinea"], ["PS", "Palau"], ["PU", "Guinea-Bissau"], ["QA", "Qatar"], ["RE", "Réunion"], ["RI", "Serbia"], ["RM", "Marshall Islands"], ["RN", "Saint Martin"], ["RO", "Romania"], ["RP", "Philippines"], ["RQ", "Puerto Rico"], ["RS", "Russia"], ["RW", "Rwanda"], ["SA", "Saudi Arabia"], ["SB", "Saint Pierre and Miquelon"], ["SC", "Saint Kitts and Nevis"], ["SE", "Seychelles"], ["SF", "South Africa"], ["SG", "Senegal"], ["SI", "Slovenia"], ["SL", "Sierra Leone"], ["SM", "San Marino"], ["SN", "Singapore"], ["SO", "Somalia"], ["SP", "Spain"], ["ST", "Saint Lucia"], ["SU", "Sudan"], ["SV", "Svalbard"], ["SW", "Sweden"], ["SY", "Syria"], ["SZ", "Switzerland"], ["TB", "Saint Barthelemy"], ["TD", "Trinidad and Tobago"], ["TH", "Thailand"], ["TI", "Tajikistan"], ["TK", "Turks and Caicos Islands"], ["TL", "Tokelau"], ["TN", "Tonga"], ["TO", "Togo"], ["TP", "Sao Tome and Principe"], ["TS", "Tunisia"], ["TT", "Timor-Leste"], ["TU", "Turkey"], ["TV", "Tuvalu"], ["TW", "Taiwan"], ["TX", "Turkmenistan"], ["TZ", "Tanzania"], ["UC", "Curaçao"], ["UG", "Uganda"], ["UK", "United Kingdom"], ["UP", "Ukraine"], ["US", "United States"], ["UV", "Burkina Faso"], ["UY", "Uruguay"], ["UZ", "Uzbekistan"], ["VE", "Venezuela"], ["VI", "British Virgin Islands"], ["VM", "Vietnam"], ["VQ", "United States Virgin Islands"], ["VT", "Vatican City"], ["WA", "Namibia"], ["WE", "West Bank"], ["WF", "Wallis and Futuna"], ["WI", "Western Sahara"], ["WQ", "Wake Island"], ["WS", "Samoa"], ["WZ", "Eswatini"], ["YM", "Yemen"], ["ZA", "Zambia"], ["ZI", "Zimbabwe"]
+        ];
+
+  window.onload = (event) => {
+    var countries_dropdown = document.getElementById("location_code");
+    //var loc = document.getElementById("location_code").value;
+
+    countries_dropdown.innerHTML = "";
+    countries_dropdown[countries_dropdown.length] = new Option("", "");
+
+    country_codes.forEach((item, i) => {
+      countries_dropdown[countries_dropdown.length] = new Option(item[1], item[0]);
+    });
+
+    var loc = document.getElementById("location_code").value;
+    //var stations_list_cache = JSON.parse(localStorage.getItem('stations_list')) ?? {};
+    document.getElementById("location_code").value = localStorage.getItem('last_country') || "IT";
+/*
+    for (const [key, value] of Object.entries(stations_list[loc])) {
+      dropdown[dropdown.length] = new Option(stations_list[loc][key].name, stations_list[loc][key].name);
+      //console.log(stations_list[loc][key]);
+      //console.log(loc);
+    } */
+
+    init_web_app();
+  };
+
+  function openTab(event, tab_name){
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tab_name).style.display = "block";
+    event.currentTarget.className += " active";
+  }
+
+   function init_web_app() {
+    fips_list = JSON.parse(localStorage.getItem('fips_list')) ?? init_fips_list;
+    tkn = "iGFEDcakIMvkvHeSOhTYDZhffuSrhenT";
+    const items = { ...localStorage };
+    //console.log(items);
+    //console.log(JSON.parse(localStorage.getItem('fips_stations')));
+    }
+
+    function populate_stations(elem){
+      //here need to auto populate the station lists from the cache in the graph's drop down menu
+      var dropdown = document.getElementById(elem.id);
+      var selector = elem.id.split("_")[1];
+      var loc = document.getElementById("location_code").value;
+
+      dropdown.innerHTML = "";
+      for (const [key, value] of Object.entries(stations_list[loc])) {
+        dropdown[dropdown.length] = new Option(stations_list[loc][key].name, stations_list[loc][key].name);
+        //console.log(stations_list[loc][key]);
+        //console.log(loc);
+      }
+      var element_dropdown = document.getElementById("elements"+"_"+selector);
+      populate_data(elem);
+
+    }
+
+    function populate_data(elem){
+      //in this function need to auto populate the elements (like max temp) and date periods for each station in the graph section
+      var which_station = "";
+      var selector = elem.id.split("_")[1];
+      var element_dropdown = document.getElementById("elements" + "_" + selector);
+      var period_dropdown = document.getElementById("periods" + "_" + selector);
+      var loc = document.getElementById("location_code").value;
+
+      element_dropdown.innerHTML = "";
+      period_dropdown.innerHTML = "";
+
+      for (const [key, value] of Object.entries(stations_list[loc])) {
+        if (stations_list[loc][key].name == elem.value) {
+          which_station = key;
+          stations_list[loc][key].elements.forEach((item, i) => {
+            element_dropdown[element_dropdown.length] = new Option(item, item);
+          });
+          stations_list[loc][key].start.forEach((item, i) => {
+            var date_entry = stations_list[loc][key]["start"][i] + " - " + stations_list[loc][key]["end"][i];
+            period_dropdown[period_dropdown.length] = new Option(date_entry, date_entry);
+          });
+
+        }
+      }
+    }
+
+    function graph_data(elem){
+      var which_station = "";
+      var station_noaa_data = {};
+      var data_to_graph = [];
+      var x_axis = [];
+      var selector = elem.id.split("_")[2];
+      var mmm = selector.split("-")[0];
+      var station_dropdown_value = document.getElementById("stations" + "_" + selector).value;
+      var element_dropdown_value = document.getElementById("elements" + "_" + selector).value;
+      var period_dropdown_value = document.getElementById("periods" + "_" + selector).value;
+      var plot_color = document.getElementById("plot_color_" + selector).value;
+      var temp;
+
+      if (station_dropdown_value == "") {return;}
+      //console.log(location_data);
+
+      location_data[document.getElementById("location_code").value].forEach((item, i) => {
+        if (item[1].replace(/\s/g, "-") == station_dropdown_value
+          && item[2] == period_dropdown_value.split(" - ")[0]
+          && item[3] == period_dropdown_value.split(" - ")[1]) {
+            station_noaa_data = JSON.parse(item[4]);
+            for (const [key, value] of Object.entries(station_noaa_data)) {
+              if (station_noaa_data[key].datatype == element_dropdown_value) {
+                if (element_dropdown_value == "TMIN" || element_dropdown_value == "TMAX" || element_dropdown_value == "TAVG"){
+                    //convert to F
+                    data_to_graph.push(((station_noaa_data[key].value / 10) * 1.8)+32)
+                  }
+                  else if (element_dropdown_value == "PRCP") {
+                    //convert to inches
+                    data_to_graph.push(station_noaa_data[key].value / 254);
+                }
+                else {
+                  data_to_graph.push(station_noaa_data[key].value);
+                }
+                  x_axis.push(station_noaa_data[key].date.split("T")[0].split("-")[2]);
+              }
+            }
+          }
+      });
+
+      var dataset = {
+        label: station_dropdown_value,
+        backgroundColor: plot_color,
+        borderColor: plot_color,
+        data: data_to_graph
+      }
+
+      let chart = Chart.getChart(myChart[mmm]);
+      if (chart == undefined) {
+        document.getElementById("canvas_section_"+mmm).style.display = "flex";
+        const data = {
+          labels: x_axis,
+          datasets: [{
+            label: station_dropdown_value,
+            backgroundColor: plot_color,
+            borderColor: plot_color,
+            data: data_to_graph,
+          }]
+        };
+
+        const config = {
+          type: 'line',
+          data: data,
+          options: {}
+        };
+
+        myChart[mmm] = new Chart(
+          document.getElementById('canvas_'+mmm),
+          config
+        );
+      }
+      else {
+        chart.data.datasets.push(dataset);
+        chart.update();
+      }
+      graph_counter == Number(mmm) ? window.scrollTo({ left: 0, top: document.body.scrollHeight, behavior: "smooth" }) : null;
+
+    }
+
+    function undo_canvas(elem){
+      var mmm = elem.id.split("_")[2];
+      let chart = Chart.getChart(myChart[Number(mmm)]);
+      var bbb = chart.data.datasets.length;
+      var target_el = document.getElementById("plot_line_" + mmm + "-" + bbb);
+      var prev_el_svg = document.getElementById("add_plot_" + mmm + "-" + (bbb-1));
+
+      if (bbb == 1) {
+        chart.destroy();
+        document.getElementById("canvas_section_" + mmm).style.display = "none";
+        var existing_elem = document.getElementById("data_grand_parent_"+mmm);
+        existing_elem.innerHTML = father.replace(/MMM/g, mmm).replace(/BBB/g, "1");
+      }
+      else {
+        target_el.remove();
+        prev_el_svg.style.visibility = "visible";
+        chart.data.datasets.pop();
+        chart.update();
+      }
+    }
+
+    function delete_canvas(elem){
+      var mmm = elem.id.split("_")[2];
+      let chart = Chart.getChart(myChart[Number(mmm)]);
+      chart.destroy();
+      document.getElementById("canvas_section_" + mmm).style.display = "none";
+
+      var existing_elem = document.getElementById("data_grand_parent_"+mmm);
+
+      existing_elem.style.display = "none";
+    }
+
+    function add_graph(elem){
+      graph_counter++;
+      document.getElementById("data_section").insertAdjacentHTML('beforeend',
+        grand_parent.replace(/MMM/g, graph_counter.toString()).replace(/BBB/g, "1"));
+      window.scrollTo({ left: 0, top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    function add_plot(elem){
+      var plot_number = Number(elem.id.split("_")[2].split("-")[1]);
+      document.getElementById("add_plot_MMM-BBB"
+        .replace(/MMM/g, elem.id.split("_")[2].split("-")[0])
+        .replace(/BBB/g, elem.id.split("_")[2].split("-")[1]))
+        .style.visibility = "hidden";
+      plot_number++;
+      document.getElementById("data_parent_"
+        + elem.id.split("_")[2].split("-")[0])
+        .insertAdjacentHTML('beforeend', data_parent.replace(/MMM/g, elem.id.split("_")[2].split("-")[0])
+        .replace(/BBB/g, plot_number.toString()));
+    }
+
+    function update_fips(){
+
+      //console.log(JSON.parse(localStorage.getItem('fips_list')));
+      //console.log(JSON.parse(localStorage.getItem('SP')));
+    }
+
+    function fetch_location_data(){
+      if (document.getElementById("location_code").value == "") {
+        document.getElementById("location_code").value = localStorage.getItem('last_country') || "IT";
+      }
+
+
+      //console.log(JSON.parse(localStorage.getItem('fips_stations')));
+      //if (JSON.parse(localStorage.getItem('fips_stations')).hasOwnProperty(loc)) {
+      var loc = document.getElementById("location_code").value;
+      localStorage.setItem('last_country', loc);
+
+      fetch_data();
+      //}
+      //else {
+      //  reset_cache();
+      //}
+
+    }
+
+    function fetch_data(){
+      if (document.getElementById("location_code").value == "") {return};
+      var loc = document.getElementById("location_code").value;
+
+      var stations_list_cache = JSON.parse(localStorage.getItem('stations_list')) ?? {};
+      var location_data_cache = JSON.parse(localStorage.getItem('location_data')) ?? {};
+      var fips_stations_cache = JSON.parse(localStorage.getItem('fips_stations')) ?? {};
+
+      stations_list[loc] = stations_list_cache[loc] ?? {};
+      location_data[loc] = location_data_cache[loc] ?? [];
+      fips_stations[loc] = fips_stations_cache[loc] ?? {};
+
+      document.getElementById("data_section").innerHTML = "<p>Add graphs. Each can have multiple plots.</p>";
+      document.getElementById("data_section").insertAdjacentHTML('beforeend',
+      add_section.replace(/MMM/g, "1").replace(/BBB/g, "1") +  grand_parent.replace(/MMM/g, "1").replace(/BBB/g, "1"));
+
+      myChart.forEach((item, i) => {
+        let chart = Chart.getChart(item);
+        chart != undefined ? chart.destroy() : null;
+      });
+
+      document.getElementById("map_button").click();
+      fips_list.hasOwnProperty(document.getElementById("location_code").value) ?
+        get_stations_noaa(document.getElementById("location_code").value, true) :
+        get_stations_noaa(document.getElementById("location_code").value, false);
+    }
+
+    function get_stations_noaa(fips, status){
+      var weather_stations;
+      var loc = document.getElementById("location_code").value;
+
+      if (status == false) {
+        const myHeaders = new Headers();
+        myHeaders.append('token', tkn);
+
+        const myRequest = new Request('https://www.ncdc.noaa.gov/cdo-web/api/v2/stations?locationid=FIPS:'
+          +fips+"&limit="+limit+"&startdate="+fips_start_date,
+        {
+          method: 'GET',
+          headers: myHeaders,
+        });
+
+        fetch(myRequest)
+          .then(response => response.json())
+          .then(data => {
+            //weather_stations = data;
+            if (Object.keys(data).length > 0){
+              fips_stations[document.getElementById("location_code").value] = data;
+              fips_list[document.getElementById("location_code").value] = fips_list.total + 1;
+              fips_list.total++;
+              localStorage.setItem('fips_list', JSON.stringify(fips_list));
+              localStorage.setItem('fips_stations', JSON.stringify(fips_stations));
+              last_known_fips = document.getElementById("location_code").value;
+              show_map(data);
+            }
+            else {
+              document.getElementById("location_code").value = last_known_fips;
+            }
+          });
+      }
+
+      else {
+        var location_data_cache = JSON.parse(localStorage.getItem('location_data')) ?? {};
+        location_data[document.getElementById("location_code").value] =
+            location_data_cache[document.getElementById("location_code").value] ?? [];
+        last_known_fips = document.getElementById("location_code").value;
+        show_map(fips_stations[loc]);
+          }
+    }
+
+    function get_station_data(start, end, elem) {
+      var link_url = "https://www.ncdc.noaa.gov/cdo-web/api/v2/data?stationid=AAA&datasetid=GHCND&startdate=CCC&enddate=DDD";
+      var data_info = [];
+      var got_data = true;
+      var loc = document.getElementById("location_code").value;
+      if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
+        start.forEach((item, i) => {
+          stations_list[loc][elem.id.split("_")[0]]["start"].push(start[i]);
+          stations_list[loc][elem.id.split("_")[0]]["end"].push(end[i]);
+        });
+      }
+      else {
+        stations_list[loc][elem.id.split("_")[0]] = {};
+        stations_list[loc][elem.id.split("_")[0]]["name"] = elem.id.split("_")[2];
+        stations_list[loc][elem.id.split("_")[0]]["start"] = start;
+        stations_list[loc][elem.id.split("_")[0]]["end"] = end;
+        //stations_list[loc].total++;
+      }
+
+      start.forEach((item, i) => {
+        const myHeaders = new Headers();
+        myHeaders.append('token', tkn);
+
+        const myRequest = new Request((link_url).replace(/AAA/g, elem.id.split("_")[0]).replace(/CCC/g,start[i]).replace(/DDD/g,end[i])
+        + "&limit=" + limit,
+        {
+          method: 'GET',
+          headers: myHeaders,
+        });
+
+        fetch(myRequest)
+          .then(response => response.json())
+          .then(async(data) => {
+            if (data.results) {
+                data.results.forEach((item1, n) => {
+               if (item1.date.split("T")[0] == start[0] && elem.id.split("_")[0] == item1.station) {
+                  data_info.push(item1.datatype);
+                }
+              });
+
+              stations_list[loc][elem.id.split("_")[0]]["elements"] = data_info;
+
+              location_data[loc].push([elem.id.split("_")[0], elem.id.split("_")[2],
+                start[i], end[i], JSON.stringify(data.results)]);
+              localStorage.setItem('location_data', JSON.stringify(location_data));
+            }
+            else {
+              got_data = false;
+            }
+        }).then(
+          function(){
+            if (got_data){
+              localStorage.setItem('stations_list', JSON.stringify(stations_list));
+              var return_string = "";
+              stations_list[loc][elem.id.split("_")[0]]["start"].forEach((item, i) => {
+                  return_string += stations_list[loc][elem.id.split("_")[0]]["start"][i] + " - " +
+                    stations_list[loc][elem.id.split("_")[0]]["end"][i];
+                  i < stations_list[loc][elem.id.split("_")[0]]["start"].length-1 ? return_string += ", " : null;
+              });
+              location[Number(elem.id.split("_")[1])].setIcon(greenIcon)
+                .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
+            }
+             else {
+               if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
+                 delete stations_list[loc][elem.id.split("_")[0]];
+                 //stations_list[loc].total--;
+               }
+               //console.log(stations_list[loc]);
+
+               location[Number(elem.id.split("_")[1])].setIcon(orangeIcon)
+                 .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
+             }
+        }).catch((err) => {
+            console.log("Fetch error: " + err);
+            document.getElementById("msg").innerHTML = "An error occured: " + err;
+            setTimeout(function(){
+              document.getElementById("msg").innerHTML = "";
+            }, 5000);
+
+            if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
+              delete stations_list[loc][elem.id.split("_")[0]];
+              //stations_list[loc].total--;
+            }
+            var return_string = "";
+            if (stations_list[loc][elem.id.split("_")[0]]) {
+              stations_list[loc][elem.id.split("_")[0]]["start"].forEach((item, i) => {
+                  return_string += stations_list[loc][elem.id.split("_")[0]]["start"][i] + " - " +
+                    stations_list[loc][elem.id.split("_")[0]]["end"][i];
+                  i < stations_list[loc][elem.id.split("_")[0]]["start"].length-1 ? return_string += ", " : null;
+                });
+              }
+            //console.log(stations_list[loc]);
+
+            location[Number(elem.id.split("_")[1])].setIcon(blueIcon)
+              .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
+        });
+      });
+    }
+
+    function column_letter(value) {
+      var base = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      var remainder, result = "";
+      do {
+          remainder = value % 26;
+          result = base[(remainder || 26) - 1] + result;
+          value = Math.floor(value / 26);
+      } while (value > 0);
+      return result;
+    }
+
+    function show_map(data){
+      var x = window.matchMedia("(max-width: 1024)");
+      var coords = data.results;
+      let arrayofmarkers=[];
+      var n= 0;
+      var images = [];
+      var stations = "";
+      var station_id = "station-ID";
+      var station_icon;
+      var popup;
+      var loc = document.getElementById("location_code").value;
+
+      var station_data = `
+        <span id="span1">Date ranges to cache:</span><br>
+        <textarea id="station_dates" name="_note" rows="4"
+        placeholder="example: 8/1/2015-10/1/2015,9/1/2016-11/15/2016"
+        ></textarea><br>
+      `;
+
+      var station_data_new = `
+        <label for="year">Month: </label>
+        <select name="month" id="month"></select>
+
+        <label for="year">Which Years? </label>
+        <select name="year" id="year" multiple></select>
+
+        <button type="button" onclick="get_station_data()" name="get_station_data">Get data</button>
+        <br>
+      `;
+
+      if (mymap == undefined ) {
+        mymap = L.map('mapid', {zoomControl: false, "tap": false});
+      }
+      else {
+        mymap.remove();
+        mymap = null;
+        mymap = L.map('mapid', {zoomControl: false, "tap": false});
+      }
+
+      L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoia2hhbGlsamFiciIsImEiOiJja2lsMHZocGMwZjhoMnl1NnFqc21zN2R3In0.bLXc9FM8XlFZG4HzgciPMw', {
+          attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+          container: 'mapid',
+          maxZoom: 22,
+          id: 'mapbox/streets-v11',
+          tileSize: 512,
+          zoomOffset: -1,
+          accessToken: 'pk.eyJ1Ijoia2hhbGlsamFiciIsImEiOiJja2lsMHZocGMwZjhoMnl1NnFqc21zN2R3In0.bLXc9FM8XlFZG4HzgciPMw'
+        }).addTo(mymap);
+
+      blueIcon = new L.Icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [0, 0]
+        });
+
+      greenIcon = new L.Icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [0, 0]
+        });
+
+      orangeIcon = new L.Icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [0, 0]
+        });
+
+      yellowIcon = new L.Icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [0, 0]
+        });
+
+      for (var i = 0; i < coords.length; i++) {
+        popup = "<p id='station'><strong>Station Info:</strong><br>"
+            + "Name: " + coords[i].name + "<br>"
+            + "Elevation: " + coords[i].elevation + "<br>"
+            + "ID: " + coords[i].id + "<br>"
+            + "Latitude: " + coords[i].latitude + "<br>"
+            + "Longitude: " + coords[i].longitude + "<br>"
+            + "minDate: " + coords[i].mindate + "<br>"
+            + "maxDate: " + coords[i].maxdate + "<br>"
+            + "</p>"
+            + station_data
+            + "<span class='station_span' onclick='station_subscribe(this)' id='"
+              + coords[i].id + "_" + i + "_" + coords[i].name.split(",")[0].replace(/\s/g, "-")
+              + "'>Cache Data for Station</span><br>"
+              + "<span id='span2' style='display: none'> Cached: [ZZZDDD]</span><br>";
+
+          stations_list[loc].hasOwnProperty(coords[i].id) ?
+            (
+              station_icon = greenIcon,
+              popup = popup.replace(/ZZZDDD/g,
+              station_dates(stations_list[loc][coords[i].id].start, stations_list[loc][coords[i].id].end)).replace(/none/g, '')
+            )
+            : (
+              station_icon = blueIcon,
+              popup = popup.replace(/ZZZDDD/g, "QQQ")
+            );
+
+            popup_info[i] = popup;
+
+
+          location[i] = L.marker([coords[i].latitude,coords[i].longitude], {icon: station_icon}).addTo(mymap)
+            .bindPopup(popup).openPopup();
+          arrayofmarkers.push([coords[i].latitude,coords[i].longitude]);
+
+        }
+
+        var bounds = new L.LatLngBounds(arrayofmarkers);
+        mymap.fitBounds(bounds, {padding: [5,5]});
+        L.control.zoom({position: 'topright'}).addTo(mymap);
+        L.control.scale({metric: false, maxWidth: 300, position: 'bottomleft'}).addTo(mymap);
+
+    }
+
+    function station_dates(start, end) {
+      var return_string = "";
+      start.forEach((item, i) => {
+          return_string += start[i] + " - " + end[i];
+          i < start.length-1 ? return_string += ", " : null;
+      });
+
+      return return_string;
+    }
+
+    function station_subscribe(elem){
+      var list_of_stations = document.getElementById("station_dates");
+      var list_of_dates = [];
+      var date_range = [];
+      var start_date = [];
+      var end_date = [];
+      if (list_of_stations == "") {
+        document.getElementById("station_dates").style.borderColor = "red";
+        return;
+      }
+
+      list_of_stations.value = list_of_stations.value.replace(/ /g, "");
+      list_of_dates = list_of_stations.value.split(",");
+      list_of_dates.forEach((item, i) => {
+        var month1 = Number(item.split("-")[0].split("/")[0]).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+          });
+        var month2 = Number(item.split("-")[1].split("/")[0]).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+          });
+        var day1 = Number(item.split("-")[0].split("/")[1]).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+          });
+        var day2 = Number(item.split("-")[1].split("/")[1]).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+          });
+
+        var start = item.split("-")[0].split("/")[2] + "-" + month1 + "-" + day1;
+        var end = item.split("-")[1].split("/")[2] + "-" + month2 + "-" + day2;
+        start_date.push(start);
+        end_date.push(end);
+      });
+
+      location[Number(elem.id.split("_")[1])].setIcon(yellowIcon).addTo(mymap);
+      mymap.closePopup();
+
+      get_station_data(start_date, end_date, elem);
+    }
+
+    function reset_cache(){
+      var fips_code = document.getElementById("location_code").value;
+
+      for (const prop of Object.getOwnPropertyNames(stations_list)) {
+        delete stations_list[prop];
+      }
+      //stations_list["total"] = 0;
+
+      for (const prop of Object.getOwnPropertyNames(fips_list)){
+        delete fips_list[prop];
+      }
+      fips_list["total"] = 0;
+
+      for (const prop of Object.getOwnPropertyNames(location_data)) {
+        delete location_data[prop];
+      }
+
+      for (const prop of Object.getOwnPropertyNames(fips_stations)) {
+        delete fips_stations[prop];
+      }
+
+      //location_data = [];
+
+      localStorage.clear();
+      localStorage.setItem('last_country', document.getElementById("location_code").value);
+      fips_list = init_fips_list;
+      document.getElementById("location_code").value = "";
+      fetch_data();
+
+    }
+
+  </script>
+</html>
