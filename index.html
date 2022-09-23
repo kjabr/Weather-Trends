@@ -109,6 +109,29 @@
       to {opacity: 1;}
     }
 
+    .station_range {
+      display: flex;
+      flex-flow: row nowrap;
+      justify-content: flex-start;
+      align-items: space-between;
+      gap: 0px;
+    }
+
+    .plot_labels {
+      margin-left: 10px;
+    }
+
+    .station_select {
+    }
+
+    .station_div {
+      display: row;
+      flex-flow: column;
+      justify-content: center;
+      gap: 0px;
+      margin-right: 13px;
+    }
+
     .plot_line {
       display: flex;
       flex-flow: row nowrap;
@@ -206,7 +229,7 @@
     <br><br>
     <div class="tab">
       <button id="map_button" class="tablinks" onclick="openTab(event, 'map_section')">Map</button>
-      <button class="tablinks" onclick="openTab(event, 'data_section')">Data</button>
+      <button class="tablinks" onclick="openTab(event, 'data_section')">Graph Data</button>
     </div>
     <p id="msg"></p>
     <div id="map_section" class="tabcontent">
@@ -298,14 +321,15 @@
             <label for="stations_MMM-BBB">Select a station:</label>
             <select name="stations_MMM-BBB" id="stations_MMM-BBB" onfocus="populate_stations(this)" onchange="populate_data(this)">
             </select>
-            <label for="elements_MMM-BBB">Element:</label>
+            <label for="periods_MMM-BBB" class="plot_labels">Period:</label>
+            <select name="periods_MMM-BBB" id="periods_MMM-BBB" onchange="change_elements(this)">
+            </select>
+
+            <label for="elements_MMM-BBB" class="plot_labels">Element:</label>
             <select name="elements_MMM-BBB" id="elements_MMM-BBB">
             </select>
 
-            <label for="periods_MMM-BBB">Period:</label>
-            <select name="periods_MMM-BBB" id="periods_MMM-BBB">
-            </select>
-            <label for="head_MMM-BBB">Color:</label>
+            <label for="head_MMM-BBB" class="plot_labels">Color:</label>
             <input type="color" class="plot_color" id="plot_color_MMM-BBB" name="head_MMM-BBB" value="#e66465">
             <button type="button" id="graph_data_MMM-BBB" onclick="graph_data(this)" name="graph_data_MMM-BBB">Graph</button>
           </div>
@@ -344,6 +368,49 @@
     var country_codes = [
       ["AA", "Aruba"], ["AC", "Antigua and Barbuda"], ["AE", "United Arab Emirates"], ["AF", "Afghanistan"], ["AG", "Algeria"], ["AJ", "Azerbaijan"], ["AL", "Albania"], ["AM", "Armenia"], ["AN", "Andorra"], ["AO", "Angola"], ["AQ", "American Samoa"], ["AR", "Argentina"], ["AS", "Australia"], ["AT", "Ashmore and Cartier Islands"], ["AU", "Austria"], ["AV", "Anguilla"], ["AX", "Akrotiri"], ["AY", "Antarctica"], ["BA", "Bahrain"], ["BB", "Barbados"], ["BC", "Botswana"], ["BD", "Bermuda"], ["BE", "Belgium"], ["BF", "Bahamas, The"], ["BG", "Bangladesh"], ["BH", "Belize"], ["BK", "Bosnia and Herzegovina"], ["BL", "Bolivia"], ["BM", "Burma"], ["BN", "Benin"], ["BO", "Belarus"], ["BP", "Solomon Islands"], ["BQ", "Navassa Island"], ["BR", "Brazil"], ["BS", "Bassas da India"], ["BT", "Bhutan"], ["BU", "Bulgaria"], ["BV", "Bouvet Island"], ["BX", "Brunei"], ["BY", "Burundi"], ["CA", "Canada"], ["CB", "Cambodia"], ["CD", "Chad"], ["CE", "Sri Lanka"], ["CF", "Congo -Brazzaville"], ["CG", "Congo -Kinshasa"], ["CH", "China"], ["CI", "Chile"], ["CJ", "Cayman Islands"], ["CK", "Cocos -Keeling- Islands"], ["CM", "Cameroon"], ["CN", "Comoros"], ["CO", "Colombia"], ["CQ", "Northern Mariana Islands"], ["CR", "Coral Sea Islands"], ["CS", "Costa Rica"], ["CT", "Central African Republic"], ["CU", "Cuba"], ["CV", "Cape Verde"], ["CW", "Cook Islands"], ["CY", "Cyprus"], ["DA", "Denmark"], ["DJ", "Djibouti"], ["DO", "Dominica"], ["DQ", "Jarvis Island"], ["DR", "Dominican Republic"], ["DX", "Dhekelia"], ["EC", "Ecuador"], ["EG", "Egypt"], ["EI", "Ireland"], ["EK", "Equatorial Guinea"], ["EN", "Estonia"], ["ER", "Eritrea"], ["ES", "El Salvador"], ["ET", "Ethiopia"], ["EZ", "Czech Republic"], ["FG", "French Guiana"], ["FI", "Finland"], ["FJ", "Fiji"], ["FK", "Falkland Islands -Islas Malvinas"], ["FM", "Micronesia, Federated States of"], ["FO", "Faroe Islands"], ["FP", "French Polynesia"], ["FQ", "Baker Island"], ["FR", "France"], ["GA", "Gambia, The"], ["GB", "Gabon"], ["GG", "Georgia"], ["GH", "Ghana"], ["GI", "Gibraltar"], ["GJ", "Grenada"], ["GK", "Guernsey"], ["GL", "Greenland"], ["GM", "Germany"], ["GP", "Guadeloupe"], ["GQ", "Guam"], ["GR", "Greece"], ["GT", "Guatemala"], ["GV", "Guinea"], ["GY", "Guyana"], ["GZ", "Gaza Strip"], ["HA", "Haiti"], ["HK", "Hong Kong"], ["HO", "Honduras"], ["HQ", "Howland Island"], ["HR", "Croatia"], ["HU", "Hungary"], ["IC", "Iceland"], ["ID", "Indonesia"], ["IM", "Isle of Man"], ["IN", "India"], ["IR", "Iran"], ["IS", "Israel"], ["IT", "Italy"], ["IV", "Côte dIvoire"], ["IZ", "Iraq"], ["JA", "Japan"], ["JE", "Jersey"], ["JM", "Jamaica"], ["JN", "Jan Mayen"], ["JO", "Jordan"], ["JQ", "Johnston Atoll"], ["JU", "Juan de Nova Island"], ["KE", "Kenya"], ["KG", "Kyrgyzstan"], ["KN", "Korea North"], ["KQ", "Kingman Reef"], ["KR", "Kiribati"], ["KS", "Korea South"], ["KT", "Christmas Island"], ["KU", "Kuwait"], ["KV", "Kosovo"], ["KZ", "Kazakhstan"], ["LA", "Laos"], ["LE", "Lebanon"], ["LG", "Latvia"], ["LH", "Lithuania"], ["LI", "Liberia"], ["LO", "Slovakia"], ["LQ", "Palmyra Atoll"], ["LS", "Liechtenstein"], ["LT", "Lesotho"], ["LU", "Luxembourg"], ["LY", "Libya"], ["MA", "Madagascar"], ["MB", "Martinique"], ["MC", "Macau"], ["MD", "Moldova"], ["MF", "Mayotte"], ["MG", "Mongolia"], ["MH", "Montserrat"], ["MI", "Malawi"], ["MJ", "Montenegro"], ["MK", "North Macedonia"], ["ML", "Mali"], ["MN", "Monaco"], ["MO", "Morocco"], ["MP", "Mauritius"], ["MQ", "Midway Islands"], ["MR", "Mauritania"], ["MT", "Malta"], ["MU", "Oman"], ["MV", "Maldives"], ["MX", "Mexico"], ["MY", "Malaysia"], ["MZ", "Mozambique"], ["NC", "New Caledonia"], ["NE", "Niue"], ["NF", "Norfolk Island"], ["NG", "Niger"], ["NH", "Vanuatu"], ["NI", "Nigeria"], ["NL", "Netherlands"], ["NN", "Sint Maarten"], ["NO", "Norway"], ["NP", "Nepal"], ["NR", "Nauru"], ["NS", "Suriname"], ["NT", "Netherlands Antilles"], ["NU", "Nicaragua"], ["NZ", "New Zealand"], ["OD", "South Sudan"], ["PA", "Paraguay"], ["PC", "Pitcairn Islands"], ["PE", "Peru"], ["PK", "Pakistan"], ["PL", "Poland"], ["PM", "Panama"], ["PO", "Portugal"], ["PP", "Papua New Guinea"], ["PS", "Palau"], ["PU", "Guinea-Bissau"], ["QA", "Qatar"], ["RE", "Réunion"], ["RI", "Serbia"], ["RM", "Marshall Islands"], ["RN", "Saint Martin"], ["RO", "Romania"], ["RP", "Philippines"], ["RQ", "Puerto Rico"], ["RS", "Russia"], ["RW", "Rwanda"], ["SA", "Saudi Arabia"], ["SB", "Saint Pierre and Miquelon"], ["SC", "Saint Kitts and Nevis"], ["SE", "Seychelles"], ["SF", "South Africa"], ["SG", "Senegal"], ["SI", "Slovenia"], ["SL", "Sierra Leone"], ["SM", "San Marino"], ["SN", "Singapore"], ["SO", "Somalia"], ["SP", "Spain"], ["ST", "Saint Lucia"], ["SU", "Sudan"], ["SV", "Svalbard"], ["SW", "Sweden"], ["SY", "Syria"], ["SZ", "Switzerland"], ["TB", "Saint Barthelemy"], ["TD", "Trinidad and Tobago"], ["TH", "Thailand"], ["TI", "Tajikistan"], ["TK", "Turks and Caicos Islands"], ["TL", "Tokelau"], ["TN", "Tonga"], ["TO", "Togo"], ["TP", "Sao Tome and Principe"], ["TS", "Tunisia"], ["TT", "Timor-Leste"], ["TU", "Turkey"], ["TV", "Tuvalu"], ["TW", "Taiwan"], ["TX", "Turkmenistan"], ["TZ", "Tanzania"], ["UC", "Curaçao"], ["UG", "Uganda"], ["UK", "United Kingdom"], ["UP", "Ukraine"], ["US", "United States"], ["UV", "Burkina Faso"], ["UY", "Uruguay"], ["UZ", "Uzbekistan"], ["VE", "Venezuela"], ["VI", "British Virgin Islands"], ["VM", "Vietnam"], ["VQ", "United States Virgin Islands"], ["VT", "Vatican City"], ["WA", "Namibia"], ["WE", "West Bank"], ["WF", "Wallis and Futuna"], ["WI", "Western Sahara"], ["WQ", "Wake Island"], ["WS", "Samoa"], ["WZ", "Eswatini"], ["YM", "Yemen"], ["ZA", "Zambia"], ["ZI", "Zimbabwe"]
         ];
+
+    var station_range = `
+     <div class="station_range">
+     <div class="station_div">
+      <label for="month">Pick months:</label>
+        <br>
+        <select name="month" id="month" class="station_select" multiple size=4>
+         <option value="Jan">Jan</option>
+         <option value="Feb">Feb</option>
+         <option value="Mar">Mar</option>
+         <option value="April">April</option>
+         <option value="May">May</option>
+         <option value="June">June</option>
+         <option value="July">July</option>
+         <option value="Aug">Aug</option>
+         <option value="Sept">Sept</option>
+         <option value="Oct">Oct</option>
+         <option value="Nov">Nov</option>
+         <option value="Dec">Dec</option>
+        </select>
+      </div>
+        <div class="station_div">
+        <label for="year">Years back?</label>
+        <br>
+        <select name="year" id="year" class="station_select">
+         <option value="1">1 year</option>
+         <option value="2">2 years</option>
+         <option value="3">3 years</option>
+         <option value="4">4 years</option>
+         <option value="5">5 years</option>
+      </select>
+      </div>
+      </div>
+      <br>
+
+    `;
+    var station_div = `
+      <div id="station_div" class="">
+        station_range_holder
+      </div>
+    `;
+
+    var station_data_new = station_range;
 
   window.onload = (event) => {
     var countries_dropdown = document.getElementById("location_code");
@@ -398,11 +465,11 @@
 
       dropdown.innerHTML = "";
       for (const [key, value] of Object.entries(stations_list[loc])) {
-        dropdown[dropdown.length] = new Option(stations_list[loc][key].name, stations_list[loc][key].name);
+        dropdown[dropdown.length] = new Option(stations_list[loc][key].name, stations_list[loc][key].name + "_" + key);
         //console.log(stations_list[loc][key]);
         //console.log(loc);
       }
-      var element_dropdown = document.getElementById("elements"+"_"+selector);
+      //var element_dropdown = document.getElementById("elements"+"_"+selector);
       populate_data(elem);
 
     }
@@ -419,11 +486,17 @@
       period_dropdown.innerHTML = "";
 
       for (const [key, value] of Object.entries(stations_list[loc])) {
-        if (stations_list[loc][key].name == elem.value) {
+        if (stations_list[loc][key].name == elem.value.split("_")[0]) {
           which_station = key;
+          stations_list[loc][key]["elements"][stations_list[loc][key]["start"][0]].forEach((item, i) => {
+            //populate only the 1st element list for the initial month shown
+            element_dropdown[element_dropdown.length] = new Option(item, item);
+          });
+          /*
           stations_list[loc][key].elements.forEach((item, i) => {
             element_dropdown[element_dropdown.length] = new Option(item, item);
           });
+          */
           stations_list[loc][key].start.forEach((item, i) => {
             var date_entry = stations_list[loc][key]["start"][i] + " - " + stations_list[loc][key]["end"][i];
             period_dropdown[period_dropdown.length] = new Option(date_entry, date_entry);
@@ -433,6 +506,25 @@
       }
     }
 
+    function change_elements(elem){
+      //function to change the element list when the month changes in the drop dropdown
+      //because each month can have a different element list (like Tmin, Tmax, Tavg etc)
+      var selector = elem.id.split("_")[1];
+      var loc = document.getElementById("location_code").value;
+      var period_dropdown = document.getElementById("periods" + "_" + selector);
+      var element_dropdown = document.getElementById("elements" + "_" + selector);
+      var key = document.getElementById("stations" + "_" + selector).value;
+      var which_month = period_dropdown.value.split(" - ")[0];
+      var station_dropdown_id = document.getElementById("stations" + "_" + selector).value.split("_")[1];
+
+
+      element_dropdown.options.length = 0;
+
+      stations_list[loc][station_dropdown_id]["elements"][which_month].forEach((item, i) => {
+        element_dropdown[element_dropdown.length] = new Option(item, item);
+      });
+    }
+
     function graph_data(elem){
       var which_station = "";
       var station_noaa_data = {};
@@ -440,7 +532,7 @@
       var x_axis = [];
       var selector = elem.id.split("_")[2];
       var mmm = selector.split("-")[0];
-      var station_dropdown_value = document.getElementById("stations" + "_" + selector).value;
+      var station_dropdown_value = document.getElementById("stations" + "_" + selector).value.split("_")[0];
       var element_dropdown_value = document.getElementById("elements" + "_" + selector).value;
       var period_dropdown_value = document.getElementById("periods" + "_" + selector).value;
       var plot_color = document.getElementById("plot_color_" + selector).value;
@@ -519,7 +611,7 @@
       var target_el = document.getElementById("plot_line_" + mmm + "-" + bbb);
       var prev_el_svg = document.getElementById("add_plot_" + mmm + "-" + (bbb-1));
 
-      if (bbb == 1) {
+      if (bbb == 1 || target_el == null) {
         chart.destroy();
         document.getElementById("canvas_section_" + mmm).style.display = "none";
         var existing_elem = document.getElementById("data_grand_parent_"+mmm);
@@ -662,21 +754,10 @@
     function get_station_data(start, end, elem) {
       var link_url = "https://www.ncdc.noaa.gov/cdo-web/api/v2/data?stationid=AAA&datasetid=GHCND&startdate=CCC&enddate=DDD";
       var data_info = [];
+      var data_elements = {};
       var got_data = true;
+      var test_response;
       var loc = document.getElementById("location_code").value;
-      if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
-        start.forEach((item, i) => {
-          stations_list[loc][elem.id.split("_")[0]]["start"].push(start[i]);
-          stations_list[loc][elem.id.split("_")[0]]["end"].push(end[i]);
-        });
-      }
-      else {
-        stations_list[loc][elem.id.split("_")[0]] = {};
-        stations_list[loc][elem.id.split("_")[0]]["name"] = elem.id.split("_")[2];
-        stations_list[loc][elem.id.split("_")[0]]["start"] = start;
-        stations_list[loc][elem.id.split("_")[0]]["end"] = end;
-        //stations_list[loc].total++;
-      }
 
       start.forEach((item, i) => {
         const myHeaders = new Headers();
@@ -689,17 +770,45 @@
           headers: myHeaders,
         });
 
+      //  console.log(myRequest);
+
         fetch(myRequest)
           .then(response => response.json())
           .then(async(data) => {
+            if (Object.keys(data).length == 0) {throw new Error('Empty Response')};
+
+            if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
+              //start.forEach((item, i) => {
+              if (stations_list[loc][elem.id.split("_")[0]]["start"].indexOf(start[i]) < 0) {
+                stations_list[loc][elem.id.split("_")[0]]["start"].push(start[i]);
+                stations_list[loc][elem.id.split("_")[0]]["end"].push(end[i]);
+              }
+
+              //});
+            }
+            else {
+              stations_list[loc][elem.id.split("_")[0]] = {};
+              stations_list[loc][elem.id.split("_")[0]]["name"] = elem.id.split("_")[2];
+              stations_list[loc][elem.id.split("_")[0]]["start"] = start;
+              stations_list[loc][elem.id.split("_")[0]]["end"] = end;
+              stations_list[loc][elem.id.split("_")[0]]["elements"] = {};
+              //data_elements[elem.id.split("_")[0]] = {};
+              //data_elements[elem.id.split("_")[0]]["elements"] = {};
+
+              //stations_list[loc].total++;
+            }
+
             if (data.results) {
                 data.results.forEach((item1, n) => {
-               if (item1.date.split("T")[0] == start[0] && elem.id.split("_")[0] == item1.station) {
-                  data_info.push(item1.datatype);
-                }
+                  item1.date.split("T")[0].split("-")[2] == "01" ? data_info.push(item1.datatype) : null;
               });
 
-              stations_list[loc][elem.id.split("_")[0]]["elements"] = data_info;
+              //data_elements[elem.id.split("_")[0]]["elements"][item] = data_info;
+              //data_elements[elem.id.split("_")[0]]["elements"].push(data_info);
+              //console.log(data_elements);
+
+              stations_list[loc][elem.id.split("_")[0]]["elements"][item] = data_info;
+              data_info = [];
 
               location_data[loc].push([elem.id.split("_")[0], elem.id.split("_")[2],
                 start[i], end[i], JSON.stringify(data.results)]);
@@ -721,6 +830,7 @@
               location[Number(elem.id.split("_")[1])].setIcon(greenIcon)
                 .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
             }
+            /*
              else {
                if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
                  delete stations_list[loc][elem.id.split("_")[0]];
@@ -730,14 +840,20 @@
 
                location[Number(elem.id.split("_")[1])].setIcon(orangeIcon)
                  .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
-             }
+             } */
         }).catch((err) => {
             console.log("Fetch error: " + err);
+
+            /*
             document.getElementById("msg").innerHTML = "An error occured: " + err;
             setTimeout(function(){
               document.getElementById("msg").innerHTML = "";
             }, 5000);
+            */
 
+            //console.log(stations_list);
+            //console.log(location_data);
+            /*
             if (stations_list[loc].hasOwnProperty(elem.id.split("_")[0])) {
               delete stations_list[loc][elem.id.split("_")[0]];
               //stations_list[loc].total--;
@@ -754,6 +870,7 @@
 
             location[Number(elem.id.split("_")[1])].setIcon(blueIcon)
               .bindPopup(popup_info[Number(elem.id.split("_")[1])].replace(/QQQ/g, return_string).replace(/none/g, '')).addTo(mymap);
+            */
         });
       });
     }
@@ -786,17 +903,6 @@
         <textarea id="station_dates" name="_note" rows="4"
         placeholder="example: 8/1/2015-10/1/2015,9/1/2016-11/15/2016"
         ></textarea><br>
-      `;
-
-      var station_data_new = `
-        <label for="year">Month: </label>
-        <select name="month" id="month"></select>
-
-        <label for="year">Which Years? </label>
-        <select name="year" id="year" multiple></select>
-
-        <button type="button" onclick="get_station_data()" name="get_station_data">Get data</button>
-        <br>
       `;
 
       if (mymap == undefined ) {
@@ -864,10 +970,10 @@
             + "minDate: " + coords[i].mindate + "<br>"
             + "maxDate: " + coords[i].maxdate + "<br>"
             + "</p>"
-            + station_data
+            + station_data_new
             + "<span class='station_span' onclick='station_subscribe(this)' id='"
               + coords[i].id + "_" + i + "_" + coords[i].name.split(",")[0].replace(/\s/g, "-")
-              + "'>Cache Data for Station</span><br>"
+              + "'>Get Data for this Station</span><br>"
               + "<span id='span2' style='display: none'> Cached: [ZZZDDD]</span><br>";
 
           stations_list[loc].hasOwnProperty(coords[i].id) ?
@@ -913,6 +1019,48 @@
       var date_range = [];
       var start_date = [];
       var end_date = [];
+      let current_year = new Date().getFullYear();
+
+      var months = Array.from(document.getElementById("month").selectedOptions).map(option => option.index);
+      var years = document.getElementById("year").selectedIndex;
+
+      //console.log(years);
+      //console.log(current_year);
+
+      for (let i = 0; i < years+1; i++){
+        months.forEach((item) => {
+          var monthStart = new Date(current_year-(i+1), item, 1);
+          var monthEnd = new Date(current_year-(i+1), item+1, 1);
+          var monthLen = (monthEnd - monthStart) / (1000*60*60*24);
+          monthLen = Math.round(monthLen * 10)/10;
+
+          //console.log(Math.ceil(monthLen * 10)/10);
+          //console.log(monthStart);
+          //console.log(monthStart.getDate());
+          //console.log(monthStart.getMonth());
+          //console.log(monthEnd);
+          //console.log(monthStart.getDate() + monthLen - 1);
+          //console.log(current_year-(i+1));
+          //console.log(current_year-(i+1) + "-" + (monthStart.getMonth()+1) + "-" + monthStart.getDate()
+          //  + " to " + (current_year-(i+1)) + "-" + (monthStart.getMonth()+1) + "-" + (monthStart.getDate() + monthLen - 1));
+          var month =  (monthStart.getMonth()+1).toLocaleString('en-US', {
+              minimumIntegerDigits: 2,
+              useGrouping: false
+            });;
+          var start1 = monthStart.getDate().toLocaleString('en-US', {
+              minimumIntegerDigits: 2,
+              useGrouping: false
+            });;
+          var end1 = (monthStart.getDate() + monthLen - 1).toLocaleString('en-US', {
+              minimumIntegerDigits: 2,
+              useGrouping: false
+            });
+          start_date.push(current_year-(i+1) + "-" + month + "-" + start1);
+          end_date.push((current_year-(i+1)) + "-" + month + "-" + end1);
+        });
+      }
+
+      /*
       if (list_of_stations == "") {
         document.getElementById("station_dates").style.borderColor = "red";
         return;
@@ -943,11 +1091,19 @@
         start_date.push(start);
         end_date.push(end);
       });
-
+      */
       location[Number(elem.id.split("_")[1])].setIcon(yellowIcon).addTo(mymap);
       mymap.closePopup();
 
       get_station_data(start_date, end_date, elem);
+
+
+    }
+
+    function add_station_range(elem){
+      var elem_id = Number(elem.id.split("_")[2]);
+      elem.style.visibility = "hidden";
+      document.getElementById("station_div").insertAdjacentHTML('beforeend', station_range.replace(/MMM/g,elem_id++));
     }
 
     function reset_cache(){
